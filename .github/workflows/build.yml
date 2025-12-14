@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  workflow_dispatch:  # manual trigger only
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install SCons
+      run: pip install scons
+
+    - name: Build with SCons
+      run: |
+          scons target=template_debug
+          scons target=template_release
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: template-binaries-${{ matrix.os }}
+        path: project/bin/*

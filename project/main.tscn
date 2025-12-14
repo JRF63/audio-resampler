@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://bgxrolq2y8oi7"]
+
+[ext_resource type="AudioStream" uid="uid://cbihhfh7q0hje" path="res://porch-swing-days-slower.mp3" id="1_ig7tw"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("1_ig7tw")
+autoplay = true

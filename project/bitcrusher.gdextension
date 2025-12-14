@@ -1,0 +1,15 @@
+[configuration]
+
+entry_symbol = "library_init"
+compatibility_minimum = "4.5"
+
+[libraries]
+
+windows.debug.x86_64 = "res://bin/libresampler.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://bin/libresampler.windows.template_release.x86_64.dll"
+
+linux.debug.x86_64 = "res://bin/libresampler.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "res://bin/libresampler.linux.template_release.x86_64.so"
+
+macos.debug = "res://bin/libresampler.macos.template_debug.dylib"
+macos.release = "res://bin/libresampler.macos.template_release.dylib"
