@@ -20,7 +20,7 @@ else:
     suffix = ""
 
 sources = Glob("src/*.cpp")
-sources += Glob("audio-resampler/*.c")
+sources += ["audio-resampler/resampler.c"]
 
 if env["platform"] == "windows":
     library = env.SharedLibrary(
