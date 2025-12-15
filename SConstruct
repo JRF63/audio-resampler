@@ -15,12 +15,19 @@ if env["platform"] == "windows":
     suffix = "Debug"
     if env["target"] == "template_release":
         suffix = "Release"
-        env.Append(LINKFLAGS=["/LTCG"])
 else:
     suffix = ""
 
+if env["target"] == "template_release":
+    if env["platform"] == "windows":
+        env.Append(CCFLAGS=["/GL"])
+        env.Append(LINKFLAGS=["/LTCG"])
+    else:
+        env.Append(CCFLAGS=["-flto"])
+        env.Append(LINKFLAGS=["flto"])
+
 sources = Glob("src/*.cpp")
-sources += ["audio-resampler/resampler.c"]
+sources += Glob("audio-resampler/*.c")
 
 if env["platform"] == "windows":
     library = env.SharedLibrary(
