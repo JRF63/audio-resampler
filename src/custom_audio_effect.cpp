@@ -73,6 +73,7 @@ void CustomAudioEffect::set_bit_depth(double bits) {
 	if (1 <= bits && bits <= 32) {
 		if (output_bits != bits) {
 			output_bits = bits;
+			output_bits_step = powf(0.5f, static_cast<float>(bits));
 		}
 	} else {
 		ERR_FAIL_EDMSG("Invalid output bit depth");

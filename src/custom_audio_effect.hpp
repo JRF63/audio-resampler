@@ -49,6 +49,7 @@ private:
 	double lowpass_freq = 0;
 
 	double output_bits = 32;
+	float output_bits_step = 1.0;
 
 	void build_resampler();
 };

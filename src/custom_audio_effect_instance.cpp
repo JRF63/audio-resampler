@@ -45,7 +45,7 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 		if (base->output_bits != 32) {
 			// Simple bitcrusher
 			float *ptr = reinterpret_cast<float *>(p_dst_buffer);
-			float step = powf(0.5f, static_cast<float>(base->output_bits));
+			float step = base->output_bits_step;
 
 			float crushed_sample;
 			for (int i = 0; i < 2 * p_frame_count; i++) {
