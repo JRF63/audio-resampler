@@ -24,7 +24,7 @@ if env["target"] == "template_release":
         env.Append(LINKFLAGS=["/LTCG"])
     else:
         env.Append(CCFLAGS=["-flto"])
-        env.Append(LINKFLAGS=["flto"])
+        env.Append(LINKFLAGS=["-flto"])
 
 sources = Glob("src/*.cpp")
 sources += Glob("audio-resampler/resampler.c")
