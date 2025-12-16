@@ -96,6 +96,10 @@ void CustomAudioEffect::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_dither_scale"), &CustomAudioEffect::get_dither_scale);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "dither_scale", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_dither_scale", "get_dither_scale");
 
+	ClassDB::bind_method(D_METHOD("set_noise_shaping", "noise_shaping"), &CustomAudioEffect::set_noise_shaping);
+	ClassDB::bind_method(D_METHOD("get_noise_shaping"), &CustomAudioEffect::get_noise_shaping);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "noise_shaping", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_noise_shaping", "get_noise_shaping");
+
 	ClassDB::bind_method(D_METHOD("set_bit_depth", "bit_depth"), &CustomAudioEffect::set_bit_depth);
 	ClassDB::bind_method(D_METHOD("get_bit_depth"), &CustomAudioEffect::get_bit_depth);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "bit_depth", PROPERTY_HINT_RANGE, "1,32,0.01"), "set_bit_depth", "get_bit_depth");
