@@ -6,12 +6,15 @@
 #include <godot_cpp/classes/audio_effect.hpp>
 
 #include <array>
+#include <deque>
 
 namespace godot {
 
 struct ChannelFilter {
 	float phase = 0.0f;
 	float hold = 0.0f;
+	std::deque<float> samples;
+	float t = 0.0f;
 
 	// 2nd-order lowpass state
 	float lp1 = 0.0f;

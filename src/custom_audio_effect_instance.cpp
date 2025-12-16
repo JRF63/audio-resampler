@@ -6,6 +6,14 @@
 
 using namespace godot;
 
+float catmull_rom(float p0, float p1, float p2, float p3, float t) {
+	// Catmull-Rom formula
+	float t2 = t * t;
+	float t3 = t2 * t;
+
+	return 0.5f * ((2.0f * p1) + (-p0 + p2) * t + (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 + (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3);
+}
+
 void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p_dst_buffer, int32_t p_frame_count) {
 	if (base.is_null()) {
 		ERR_FAIL_EDMSG("Invalid AudioEffect reference");
@@ -23,11 +31,11 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 			for (int ch = 0; ch < NUM_CHANNELS; ch++) {
 				ChannelFilter &st = base->channel_filters[ch];
 
-				base->channel_filters[ch].phase += ratio;
+				st.phase += ratio;
 
 				// Fractional sample-and-hold
-				if (base->channel_filters[ch].phase >= 1.0f) {
-					base->channel_filters[ch].phase = -1.0f;
+				if (st.phase >= 1.0f) {
+					st.phase = -1.0f;
 
 					float x = src[i][ch];
 
@@ -51,19 +59,35 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 					x = st.lp2;
 
 					if (base->noise_shaping_k > 0.0f) {
-						x -= base->noise_shaping_k * base->channel_filters[ch].quant_error;
+						x -= base->noise_shaping_k * st.quant_error;
 					}
 
 					// Bit depth reduction
-					// st.hold_past = st.hold;
 					st.hold = floorf(x / scale) * scale;
 
+					auto &deque = st.samples;
+					deque.push_back(st.hold);
+					if (deque.size() > 4) {
+						deque.pop_front();
+					}
+					st.t = 0.0f;
+
 					if (base->noise_shaping_k > 0.0f) {
-						base->channel_filters[ch].quant_error = st.hold - x;
+						st.quant_error = st.hold - x;
 					}
 				}
 
-				dst[i][ch] = st.hold;
+				auto &deque = st.samples;
+				if (deque.size() == 4) {
+					float t = st.t;
+					if (t > 1.0f) {
+						t = 1.0f;
+					}
+					dst[i][ch] = catmull_rom(deque[0], deque[1], deque[2], deque[3], t);
+				}
+				st.t += ratio;
+
+				// dst[i][ch] = st.hold;
 			}
 		}
 	}
