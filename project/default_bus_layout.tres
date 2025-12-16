@@ -1,8 +1,6 @@
 [gd_resource type="AudioBusLayout" load_steps=2 format=3 uid="uid://b1re1bw3o24i5"]
 
 [sub_resource type="CustomAudioEffect" id="CustomAudioEffect_j3pel"]
-lowpass_ratio = 1.0
-ratio = 0.95
 resource_name = "Custom"
 
 [resource]
