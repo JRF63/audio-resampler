@@ -9,7 +9,8 @@ opts = Variables([], ARGUMENTS)
 opts.Add("target_name", "Name of the library to be built by SCons", "libresampler")
 opts.Update(env)
 
-env.Append(CPPPATH=["src/", "audio-resampler/"])
+env.Append(CPPPATH=["src/", "soxr/src/"])
+env.Append(CPPDEFINES = "SOXR_LIB")
 
 if env["platform"] == "windows":
     suffix = "Debug"
@@ -27,6 +28,24 @@ if env["target"] == "template_release":
         env.Append(LINKFLAGS=["-flto"])
 
 sources = Glob("src/*.cpp")
+sources += [
+    "soxr/src/cr.c",
+    "soxr/src/cr32.c",
+    "soxr/src/cr32s.c",
+    "soxr/src/cr64.c",
+    "soxr/src/cr64s.c",
+    "soxr/src/data-io.c",
+    "soxr/src/dbesi0.c",
+    "soxr/src/fft4g32.c",
+    "soxr/src/fft4g64.c",
+    "soxr/src/filter.c",
+    # "soxr/src/pffft32s.c",
+    # "soxr/src/pffft64s.c",
+    # "soxr/src/util32s.c",
+    # "soxr/src/util64s.c",
+    "soxr/src/soxr.c",
+    "soxr/src/vr32.c",
+]
 
 if env["platform"] == "windows":
     library = env.SharedLibrary(

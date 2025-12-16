@@ -6,6 +6,8 @@
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
+#include "bitcrusher_audio_effect.hpp"
+#include "bitcrusher_audio_effect_instance.hpp"
 #include "custom_audio_effect.hpp"
 #include "custom_audio_effect_instance.hpp"
 
@@ -16,6 +18,8 @@ void initialize_module(ModuleInitializationLevel p_level) {
 		return;
 	}
 
+	ClassDB::register_class<BitcrusherAudioEffect>();
+	ClassDB::register_class<BitcrusherAudioEffectInstance>();
 	ClassDB::register_class<CustomAudioEffect>();
 	ClassDB::register_class<CustomAudioEffectInstance>();
 }
