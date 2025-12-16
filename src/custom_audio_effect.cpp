@@ -6,6 +6,12 @@
 
 using namespace godot;
 
+CustomAudioEffect::CustomAudioEffect() {
+	uint64_t seed = Rng::init_state - Rng::increment;
+	channel_rngs[0].init(seed);
+	channel_rngs[1].init(~seed);
+}
+
 Ref<AudioEffectInstance> CustomAudioEffect::_instantiate() {
 	Ref<CustomAudioEffectInstance> ins;
 	ins.instantiate();

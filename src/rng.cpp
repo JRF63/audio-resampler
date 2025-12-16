@@ -5,6 +5,11 @@ float Rng::generate() {
 	return (rand() >> 8) * (1.0f / 16777216.0f);
 }
 
+void Rng::init(uint64_t seed) {
+	state = seed + Rng::increment;
+	rand();
+}
+
 static inline uint32_t rotr32(uint32_t x, unsigned r) {
 	return x >> r | x << (-r & 31);
 }

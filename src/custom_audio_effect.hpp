@@ -25,6 +25,8 @@ class CustomAudioEffect : public AudioEffect {
 	friend class CustomAudioEffectInstance;
 
 public:
+	CustomAudioEffect();
+
 	virtual Ref<AudioEffectInstance> _instantiate() override;
 
 	void set_downsample_factor(int factor);
