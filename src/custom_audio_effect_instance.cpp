@@ -45,7 +45,7 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 					}
 
 					if (base->noise_shaping_k > 0.0f) {
-						x += base->noise_shaping_k * base->channel_filters[ch].quant_error;
+						x -= base->noise_shaping_k * base->channel_filters[ch].quant_error;
 					}
 
 					// Bit depth reduction
