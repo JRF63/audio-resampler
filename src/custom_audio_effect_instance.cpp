@@ -31,7 +31,7 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 					float x = src[i][ch];
 
 					// Triangle PDF dithering
-					if (base->dither_scale > 0.0) {
+					if (base->dither_scale > 0.0f) {
 						// if (base->dither) {
 						float u1 = base->channel_rngs[ch].generate();
 						float u2 = base->channel_rngs[ch].generate();
@@ -45,14 +45,14 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 						x += dither;
 					}
 
-					if (base->noise_shaping_k > 0.0) {
+					if (base->noise_shaping_k > 0.0f) {
 						x += base->noise_shaping_k * base->channel_filters[ch].quant_error;
 					}
 
 					// Bit depth reduction
 					st.hold = floorf(x / scale) * scale;
 
-					if (base->noise_shaping_k > 0.0) {
+					if (base->noise_shaping_k > 0.0f) {
 						base->channel_filters[ch].quant_error = st.hold - x;
 					}
 				}

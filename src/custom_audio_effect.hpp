@@ -52,7 +52,7 @@ private:
 	float noise_shaping_k = 0.0;
 	float dither_scale = 0.0;
 
-	float bit_depth_step = 0x1p-32; // Exactly equal to ldexpf(-1.0f, 32.0);
+	float bit_depth_step = 0x1p-32; // Exactly equal to ldexpf(1.0f, -32.0f);
 
 	std::array<ChannelFilter, 2> channel_filters{};
 	std::array<Rng, 2> channel_rngs;
