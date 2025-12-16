@@ -27,7 +27,6 @@ if env["target"] == "template_release":
         env.Append(LINKFLAGS=["-flto"])
 
 sources = Glob("src/*.cpp")
-sources += Glob("audio-resampler/resampler.c")
 
 if env["platform"] == "windows":
     library = env.SharedLibrary(

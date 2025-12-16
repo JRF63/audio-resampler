@@ -1,14 +1,25 @@
 #pragma once
 
 #include "custom_audio_effect_instance.hpp"
-#include "reexport.h"
+#include "rng.hpp"
 
 #include <godot_cpp/classes/audio_effect.hpp>
 
-constexpr int DEFAULT_NUM_TAPS = 380;
-constexpr int DEFAULT_NUM_FILTERS = DEFAULT_NUM_TAPS;
+#include <array>
 
 namespace godot {
+
+struct ChannelFilter {
+	int counter = 0;
+	float hold = 0.0f;
+
+	// 2nd-order lowpass state
+	float lp1 = 0.0f;
+	float lp2 = 0.0f;
+
+	float quant_error = 0.0f;
+};
+
 class CustomAudioEffect : public AudioEffect {
 	GDCLASS(CustomAudioEffect, AudioEffect)
 	friend class CustomAudioEffectInstance;
@@ -16,41 +27,35 @@ class CustomAudioEffect : public AudioEffect {
 public:
 	virtual Ref<AudioEffectInstance> _instantiate() override;
 
-	void set_num_sinc_taps(int num_sinc_taps);
-	int get_num_sinc_taps() const;
+	void set_downsample_factor(int factor);
+	int get_downsample_factor() const;
 
-	void set_num_sinc_filters(int num_sinc_filters);
-	int get_num_sinc_filters() const;
+	void set_lowpass_alpha(float alpha);
+	float get_lowpass_alpha() const;
 
-	void set_lowpass_freq(double freq);
-	double get_lowpass_freq() const;
+	void set_bit_depth(float bits);
+	float get_bit_depth() const;
 
-	void set_output_sample_rate(double sample_rate);
-	double get_output_sample_rate() const;
+	void set_noise_shaping(float k);
+	float get_noise_shaping() const;
 
-	void set_bit_depth(double bits);
-	double get_bit_depth() const;
-
-	bool sample_rate_changed() const;
+	void set_dither_scale(float scale);
+	float get_dither_scale() const;
 
 protected:
 	static void _bind_methods();
 
 private:
-	ResamplePtr resampler;
-	ResamplePtr resampler2;
+	int downsample_factor = 0;
+	float lowpass_alpha = 1.0;
+	float bit_depth = 32.0;
+	float noise_shaping_k = 0.0;
+	float dither_scale = 0.0;
 
-	int num_channels = 2; // Always 2
-	double source_rate = 0;
-	double dest_rate = 0;
+	float bit_depth_step = 0x1p-32; // Exactly equal to ldexpf(-1.0f, 32.0);
 
-	int num_taps = DEFAULT_NUM_TAPS;
-	int num_filters = DEFAULT_NUM_FILTERS;
-	double lowpass_freq = 0;
-
-	double output_bits = 32;
-	float output_bits_step = 1.0;
-
-	void build_resampler();
+	std::array<ChannelFilter, 2> channel_filters{};
+	std::array<Rng, 2> channel_rngs;
 };
+
 } //namespace godot
