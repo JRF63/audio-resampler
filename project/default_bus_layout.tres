@@ -1,6 +1,7 @@
 [gd_resource type="AudioBusLayout" load_steps=2 format=3 uid="uid://b1re1bw3o24i5"]
 
 [sub_resource type="BitcrusherAudioEffect" id="BitcrusherAudioEffect_j3pel"]
+sample_rate = 8000.0
 resource_name = "Bitcrusher"
 
 [resource]
