@@ -47,10 +47,10 @@ protected:
 
 private:
 	int downsample_factor = 0;
-	float lowpass_alpha = 1.0;
-	float bit_depth = 32.0;
-	float noise_shaping_k = 0.0;
-	float dither_scale = 0.0;
+	float lowpass_alpha = 1.0f;
+	float bit_depth = 32.0f;
+	float noise_shaping_k = 0.0f;
+	float dither_scale = 0.0f;
 
 	float bit_depth_step = 0x1p-32; // Exactly equal to ldexpf(1.0f, -32.0f);
 

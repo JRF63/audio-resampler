@@ -32,7 +32,6 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 
 					// Triangle PDF dithering
 					if (base->dither_scale > 0.0f) {
-						// if (base->dither) {
 						float u1 = base->channel_rngs[ch].generate();
 						float u2 = base->channel_rngs[ch].generate();
 
