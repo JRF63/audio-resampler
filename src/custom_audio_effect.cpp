@@ -20,16 +20,17 @@ Ref<AudioEffectInstance> CustomAudioEffect::_instantiate() {
 	return ins;
 }
 
-void CustomAudioEffect::set_downsample_factor(int factor) {
-	if (0 <= factor && factor <= 512) {
-		downsample_factor = factor;
+void CustomAudioEffect::set_target_sample_rate(float sample_rate) {
+	if (0.0f <= sample_rate) {
+		target_sample_rate = sample_rate;
+		sample_rate_ratio = sample_rate / AudioServer::get_singleton()->get_mix_rate();
 	} else {
 		ERR_FAIL_EDMSG("Invalid downsample factor");
 	}
 }
 
-int CustomAudioEffect::get_downsample_factor() const {
-	return downsample_factor;
+float CustomAudioEffect::get_target_sample_rate() const {
+	return target_sample_rate;
 }
 
 void CustomAudioEffect::set_lowpass_alpha(float alpha) {
@@ -84,9 +85,9 @@ float CustomAudioEffect::get_dither_scale() const {
 }
 
 void CustomAudioEffect::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_downsample_factor", "downsample_factor"), &CustomAudioEffect::set_downsample_factor);
-	ClassDB::bind_method(D_METHOD("get_downsample_factor"), &CustomAudioEffect::get_downsample_factor);
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "downsample_factor", PROPERTY_HINT_RANGE, "0,512,1"), "set_downsample_factor", "get_downsample_factor");
+	ClassDB::bind_method(D_METHOD("set_target_sample_rate", "target_sample_rate"), &CustomAudioEffect::set_target_sample_rate);
+	ClassDB::bind_method(D_METHOD("get_target_sample_rate"), &CustomAudioEffect::get_target_sample_rate);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "target_sample_rate", PROPERTY_HINT_RANGE, "0,44100,0.1,or_greater"), "set_target_sample_rate", "get_target_sample_rate");
 
 	ClassDB::bind_method(D_METHOD("set_lowpass_alpha", "lowpass_alpha"), &CustomAudioEffect::set_lowpass_alpha);
 	ClassDB::bind_method(D_METHOD("get_lowpass_alpha"), &CustomAudioEffect::get_lowpass_alpha);

@@ -15,18 +15,19 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 		const float (*src)[NUM_CHANNELS] = static_cast<const float (*)[NUM_CHANNELS]>(p_src_buffer);
 		float (*dst)[NUM_CHANNELS] = reinterpret_cast<float (*)[NUM_CHANNELS]>(p_dst_buffer);
 
-		const int downsample_factor = base->downsample_factor;
+		const float ratio = base->sample_rate_ratio;
 		const float alpha = base->lowpass_alpha;
-
 		const float scale = base->bit_depth_step;
 
 		for (int i = 0; i < p_frame_count; i++) {
 			for (int ch = 0; ch < NUM_CHANNELS; ch++) {
 				ChannelFilter &st = base->channel_filters[ch];
 
-				// Step-and-hold (fake downsampling)
-				if (++st.counter >= downsample_factor) {
-					st.counter = 0;
+				base->channel_filters[ch].phase += ratio;
+
+				// Fractional sample-and-hold
+				if (base->channel_filters[ch].phase >= 1.0f) {
+					base->channel_filters[ch].phase = -1.0f;
 
 					float x = src[i][ch];
 
@@ -44,11 +45,17 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 						x += dither;
 					}
 
+					// 2nd-order lowpass (two cascaded single-pole filters)
+					st.lp1 = alpha * x + (1.0f - alpha) * st.lp1;
+					st.lp2 = alpha * st.lp1 + (1.0f - alpha) * st.lp2;
+					x = st.lp2;
+
 					if (base->noise_shaping_k > 0.0f) {
 						x -= base->noise_shaping_k * base->channel_filters[ch].quant_error;
 					}
 
 					// Bit depth reduction
+					// st.hold_past = st.hold;
 					st.hold = floorf(x / scale) * scale;
 
 					if (base->noise_shaping_k > 0.0f) {
@@ -56,11 +63,7 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 					}
 				}
 
-				// 2nd-order lowpass (two cascaded single-pole filters)
-				st.lp1 = alpha * st.hold + (1.0f - alpha) * st.lp1;
-				st.lp2 = alpha * st.lp1 + (1.0f - alpha) * st.lp2;
-
-				dst[i][ch] = st.lp2;
+				dst[i][ch] = st.hold;
 			}
 		}
 	}

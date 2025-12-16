@@ -10,7 +10,7 @@
 namespace godot {
 
 struct ChannelFilter {
-	int counter = 0;
+	float phase = 0.0f;
 	float hold = 0.0f;
 
 	// 2nd-order lowpass state
@@ -29,8 +29,8 @@ public:
 
 	virtual Ref<AudioEffectInstance> _instantiate() override;
 
-	void set_downsample_factor(int factor);
-	int get_downsample_factor() const;
+	void set_target_sample_rate(float sample_rate);
+	float get_target_sample_rate() const;
 
 	void set_lowpass_alpha(float alpha);
 	float get_lowpass_alpha() const;
@@ -48,12 +48,13 @@ protected:
 	static void _bind_methods();
 
 private:
-	int downsample_factor = 0;
+	float target_sample_rate = 44100.0f;
 	float lowpass_alpha = 1.0f;
 	float bit_depth = 32.0f;
 	float noise_shaping_k = 0.0f;
 	float dither_scale = 0.0f;
 
+	float sample_rate_ratio = 1.0f;
 	float bit_depth_step = 0x1p-32; // Exactly equal to ldexpf(1.0f, -32.0f);
 
 	std::array<ChannelFilter, 2> channel_filters{};
