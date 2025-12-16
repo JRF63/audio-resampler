@@ -33,4 +33,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: template-binaries-${{ matrix.os }}
-        path: project/bin/*
+        path: |
+          project/bin/*.so
+          project/bin/*.dll
+          project/bin/*.dylib
