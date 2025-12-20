@@ -53,6 +53,9 @@ public:
 	void set_dither_scale(float scale);
 	float get_dither_scale() const;
 
+	void set_interpolation(bool enable);
+	bool get_interpolation() const;
+
 protected:
 	static void _bind_methods();
 
@@ -62,6 +65,7 @@ private:
 	float bit_depth = 32.0f;
 	float noise_shaping_k = 0.0f;
 	float dither_scale = 0.0f;
+	bool interpolation = false;
 
 	float sample_rate_ratio = 1.0f;
 	float bit_depth_step = 0x1p-32; // Exactly equal to ldexpf(1.0f, -32.0f);

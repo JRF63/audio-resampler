@@ -48,8 +48,6 @@ float CustomAudioEffect::get_lowpass_alpha() const {
 void CustomAudioEffect::set_bit_depth(float bits) {
 	if (1 <= bits && bits <= 32) {
 		bit_depth = bits;
-
-		// bit_depth_step = powf(0.5f, bits);
 		bit_depth_step = ldexpf(1.0f, -bits);
 	} else {
 		ERR_FAIL_EDMSG("Invalid output bit depth");
@@ -84,6 +82,14 @@ float CustomAudioEffect::get_dither_scale() const {
 	return dither_scale;
 }
 
+void CustomAudioEffect::set_interpolation(bool enable) {
+	interpolation = enable;
+}
+
+bool CustomAudioEffect::get_interpolation() const {
+	return interpolation;
+}
+
 void CustomAudioEffect::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_target_sample_rate", "target_sample_rate"), &CustomAudioEffect::set_target_sample_rate);
 	ClassDB::bind_method(D_METHOD("get_target_sample_rate"), &CustomAudioEffect::get_target_sample_rate);
@@ -104,4 +110,8 @@ void CustomAudioEffect::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_bit_depth", "bit_depth"), &CustomAudioEffect::set_bit_depth);
 	ClassDB::bind_method(D_METHOD("get_bit_depth"), &CustomAudioEffect::get_bit_depth);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "bit_depth", PROPERTY_HINT_RANGE, "1,32,0.01"), "set_bit_depth", "get_bit_depth");
+
+	ClassDB::bind_method(D_METHOD("set_interpolation", "interpolation"), &CustomAudioEffect::set_interpolation);
+	ClassDB::bind_method(D_METHOD("get_interpolation"), &CustomAudioEffect::get_interpolation);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "interpolation"), "set_interpolation", "get_interpolation");
 }

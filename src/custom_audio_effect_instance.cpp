@@ -91,21 +91,25 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 
 					auto num = st.index;
 
-					float t = static_cast<float>(num) / static_cast<float>(den);
-					dst[i][ch] = catmull_rom(
-							st.samples[0].sample,
-							st.samples[1].sample,
-							st.samples[2].sample,
-							st.samples[3].sample,
-							t);
+					if (base->interpolation) {
+						float t = static_cast<float>(num) / static_cast<float>(den);
+						dst[i][ch] = catmull_rom(
+								st.samples[0].sample,
+								st.samples[1].sample,
+								st.samples[2].sample,
+								st.samples[3].sample,
+								t);
+					} else {
+						dst[i][ch] = st.samples[1].sample;
+					}
 
 					st.index += 1;
 					if (st.index >= den) {
 						st.index = 0;
 					}
+				} else {
+					dst[i][ch] = 0.0f;
 				}
-
-				// dst[i][ch] = st.hold;
 			}
 		}
 	}
