@@ -9,7 +9,7 @@ namespace godot {
 
 class Statistics {
 public:
-	static constexpr size_t WINDOW = 20;
+	static constexpr size_t WINDOW = 16;
 
 	std::deque<uint64_t> consumed;
 	std::deque<uint64_t> produced;
@@ -58,12 +58,13 @@ public:
 
 private:
 	std::vector<AudioFrame> intermediate_buffer;
-	std::deque<std::vector<AudioFrame>> foo;
+	std::vector<AudioFrame> intermediate_buffer2;
+	std::deque<std::vector<AudioFrame>> output_deque;
 	size_t samples_in_buffer;
 	bool started = false;
 
-	Statistics stat1;
-	Statistics stat2;
+	// Statistics stat1;
+	// Statistics stat2;
 };
 
 } //namespace godot

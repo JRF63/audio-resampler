@@ -1,6 +1,8 @@
 #include "bitcrusher_audio_effect_instance.hpp"
 #include "bitcrusher_audio_effect.hpp"
 
+#include <algorithm>
+
 using namespace godot;
 
 void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p_dst_buffer, int32_t p_frame_count) {
@@ -14,86 +16,81 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 		return;
 	}
 
+	auto mute_before_return = [&] {
+		float *output = reinterpret_cast<float *>(p_dst_buffer);
+		std::fill(output, output + 2 * p_frame_count, 0);
+	};
+
+	auto ratio = base->godot_sample_rate / base->target_sample_rate;
 	intermediate_buffer.resize(p_frame_count);
+	intermediate_buffer2.resize(ceil(ratio * p_frame_count));
 
 	size_t idone;
 	size_t odone;
 	soxr_error_t error;
-	auto intermediate = reinterpret_cast<void *>(intermediate_buffer.data());
-	auto output = reinterpret_cast<char *>(p_dst_buffer);
 
 	error = soxr_process(
 			base->soxr1.get(),
 			p_src_buffer,
 			p_frame_count,
 			&idone,
-			intermediate,
-			p_frame_count,
+			reinterpret_cast<void *>(intermediate_buffer.data()),
+			intermediate_buffer.size(),
 			&odone);
 	if (error) {
 		String msg = "Error during downsampling: ";
 		msg += soxr_strerror(error);
 		ERR_FAIL_EDMSG(msg);
 	}
+	// stat1.push(idone, odone);
 
-	stat1.push(idone, odone);
+	size_t written = odone;
+	error = soxr_process(
+			base->soxr2.get(),
+			reinterpret_cast<void *>(intermediate_buffer.data()),
+			written,
+			&idone,
+			reinterpret_cast<void *>(intermediate_buffer2.data()),
+			intermediate_buffer2.size(),
+			&odone);
+	if (error) {
+		String msg = "Error during upsampling: ";
+		msg += soxr_strerror(error);
+		ERR_FAIL_EDMSG(msg);
+	}
+	// stat2.push(idone, odone);
 
-	samples_in_buffer += odone;
-	foo.push_back(intermediate_buffer);
+	if (odone > 0) {
+		samples_in_buffer += odone;
+		output_deque.push_back(intermediate_buffer2);
+
+		auto &back = output_deque.back();
+		back.resize(odone);
+	}
 
 	if (!started) {
-		if (samples_in_buffer < 8 * p_frame_count) {
-			for (int i = 0; i < p_frame_count; i++) {
-				p_dst_buffer[i].left = 0;
-				p_dst_buffer[i].right = 0;
-			}
+		if (samples_in_buffer < Statistics::WINDOW * p_frame_count) {
+			mute_before_return();
 			return;
 		} else {
 			started = true;
 		}
 	}
 
-	size_t idone_acc = 0;
-	size_t odone_acc = 0;
-	size_t offset = 0;
-	while (!foo.empty() && offset < p_frame_count) {
-		auto &first = foo[0];
-		error = soxr_process(
-				base->soxr2.get(),
-				reinterpret_cast<void *>(first.data()),
-				first.size(),
-				&idone,
-				output + offset,
-				p_frame_count - offset,
-				&odone);
-		if (error) {
-			String msg = "Error during upsampling: ";
-			msg += soxr_strerror(error);
-			ERR_FAIL_EDMSG(msg);
-		}
-		foo.pop_front();
-
-		offset += odone;
-		idone_acc += idone;
-		odone_acc += odone;
-	}
-
-	stat2.push(idone_acc, odone_acc);
-
-	if (odone == 0) {
-		for (int i = 0; i < p_frame_count; i++) {
-			p_dst_buffer[i].left = 0;
-			p_dst_buffer[i].right = 0;
+	size_t index = 0;
+	int32_t remaining = p_frame_count;
+	while (!output_deque.empty() && remaining > 0) {
+		auto &front = output_deque.front();
+		if (front.size() > remaining) {
+			std::copy(front.begin(), front.begin() + remaining, p_dst_buffer + index);
+			front.erase(front.begin(), front.begin() + remaining);
+			index += remaining;
+			remaining = 0;
+		} else {
+			std::copy(front.begin(), front.end(), p_dst_buffer + index);
+			index += front.size();
+			remaining -= front.size();
+			output_deque.pop_front();
 		}
 	}
-
-	String debug = "";
-	debug += String::num_real(stat1.ave_consumed());
-	debug += ", ";
-	debug += String::num_real(stat1.ave_produced());
-	debug += ", ";
-	debug += String::num_real(stat2.ave_consumed());
-	debug += ", ";
-	debug += String::num_real(stat2.ave_produced());
-	WARN_PRINT_ED(debug);
 }

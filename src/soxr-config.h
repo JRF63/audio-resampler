@@ -17,7 +17,7 @@
 #define WITH_CR64S 0
 #define WITH_VR32 1
 
-#define WITH_HI_PREC_CLOCK 1
+#define WITH_HI_PREC_CLOCK 0
 #define WITH_FLOAT_STD_PREC_CLOCK 0
 #define WITH_DEV_TRACE 1
 
