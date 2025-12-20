@@ -51,10 +51,6 @@ void BitcrusherAudioEffect::create_resamplers() {
 
 	unsigned num_channels = 2; // Always 2
 
-	unsigned long quality_spec_recipe = SOXR_HQ;
-	unsigned long quality_spec_flags = 0;
-	soxr_quality_spec_t quality_spec = soxr_quality_spec(quality_spec_recipe, quality_spec_flags);
-
 	unsigned num_threads = 1;
 	soxr_runtime_spec_t runtime_spec = soxr_runtime_spec(num_threads);
 
@@ -63,41 +59,53 @@ void BitcrusherAudioEffect::create_resamplers() {
 	soxr_datatype_t intermediate_data_type = SOXR_FLOAT32_I;
 	soxr_datatype_t output_data_type = SOXR_FLOAT32_I;
 
-	soxr_io_spec_t io_spec_downsampler = soxr_io_spec(input_data_type, intermediate_data_type);
+	{
+		soxr_io_spec_t io_spec_downsampler = soxr_io_spec(input_data_type, intermediate_data_type);
 
-	auto downsampler = soxr_create(
-			godot_sample_rate,
-			target_sample_rate,
-			num_channels,
-			&error,
-			&io_spec_downsampler,
-			&quality_spec,
-			&runtime_spec);
+		unsigned long quality_spec_recipe = SOXR_HQ;
+		unsigned long quality_spec_flags = 0;
+		soxr_quality_spec_t quality_spec = soxr_quality_spec(quality_spec_recipe, quality_spec_flags);
 
-	if (error) {
-		String msg = "Downsampler creation failed: ";
-		msg += soxr_strerror(error);
-		ERR_FAIL_EDMSG(msg);
-	} else {
-		soxr1 = SoxrPtr(downsampler);
+		auto downsampler = soxr_create(
+				godot_sample_rate,
+				target_sample_rate,
+				num_channels,
+				&error,
+				&io_spec_downsampler,
+				&quality_spec,
+				&runtime_spec);
+
+		if (error) {
+			String msg = "Downsampler creation failed: ";
+			msg += soxr_strerror(error);
+			ERR_FAIL_EDMSG(msg);
+		} else {
+			soxr1 = SoxrPtr(downsampler);
+		}
 	}
 
-	soxr_io_spec_t io_spec_upsampler = soxr_io_spec(intermediate_data_type, output_data_type);
+	{
+		soxr_io_spec_t io_spec_upsampler = soxr_io_spec(intermediate_data_type, output_data_type);
 
-	auto upsampler = soxr_create(
-			target_sample_rate,
-			godot_sample_rate,
-			num_channels,
-			&error,
-			&io_spec_upsampler,
-			&quality_spec,
-			&runtime_spec);
+		unsigned long quality_spec_recipe = SOXR_HQ;
+		unsigned long quality_spec_flags = 0;
+		soxr_quality_spec_t quality_spec = soxr_quality_spec(quality_spec_recipe, quality_spec_flags);
 
-	if (error) {
-		String msg = "Upsampler creation failed: ";
-		msg += soxr_strerror(error);
-		ERR_FAIL_EDMSG(msg);
-	} else {
-		soxr2 = SoxrPtr(upsampler);
+		auto upsampler = soxr_create(
+				target_sample_rate,
+				godot_sample_rate,
+				num_channels,
+				&error,
+				&io_spec_upsampler,
+				&quality_spec,
+				&runtime_spec);
+
+		if (error) {
+			String msg = "Upsampler creation failed: ";
+			msg += soxr_strerror(error);
+			ERR_FAIL_EDMSG(msg);
+		} else {
+			soxr2 = SoxrPtr(upsampler);
+		}
 	}
 }
