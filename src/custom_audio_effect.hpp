@@ -10,11 +10,17 @@
 
 namespace godot {
 
+struct HeldSample {
+	float sample;
+	int32_t index;
+};
+
 struct ChannelFilter {
 	float phase = 0.0f;
 	float hold = 0.0f;
-	std::deque<float> samples;
-	float t = 0.0f;
+
+	std::deque<HeldSample> samples;
+	int32_t index;
 
 	// 2nd-order lowpass state
 	float lp1 = 0.0f;

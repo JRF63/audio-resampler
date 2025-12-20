@@ -34,7 +34,7 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 				st.phase += ratio;
 
 				// Fractional sample-and-hold
-				if (st.phase >= 1.0f) {
+				if (ratio == 1.0f || st.phase >= 1.0f) {
 					st.phase = -1.0f;
 
 					float x = src[i][ch];
@@ -65,27 +65,45 @@ void CustomAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p
 					// Bit depth reduction
 					st.hold = floorf(x / scale) * scale;
 
-					auto &deque = st.samples;
-					deque.push_back(st.hold);
-					if (deque.size() > 4) {
-						deque.pop_front();
+					auto &samples = st.samples;
+
+					if (samples.empty()) {
+						samples.push_back(HeldSample{ st.hold, i });
+						st.index = 0;
 					}
-					st.t = 0.0f;
+					samples.push_back(HeldSample{ st.hold, i });
+
+					if (samples.size() > 4) {
+						samples.pop_front();
+					}
 
 					if (base->noise_shaping_k > 0.0f) {
 						st.quant_error = st.hold - x;
 					}
 				}
 
-				auto &deque = st.samples;
-				if (deque.size() == 4) {
-					float t = st.t;
-					if (t > 1.0f) {
-						t = 1.0f;
+				auto &samples = st.samples;
+				if (samples.size() == 4) {
+					auto den = st.samples[2].index - st.samples[1].index;
+					if (den < 0) {
+						den += p_frame_count;
 					}
-					dst[i][ch] = catmull_rom(deque[0], deque[1], deque[2], deque[3], t);
+
+					auto num = st.index;
+
+					float t = static_cast<float>(num) / static_cast<float>(den);
+					dst[i][ch] = catmull_rom(
+							st.samples[0].sample,
+							st.samples[1].sample,
+							st.samples[2].sample,
+							st.samples[3].sample,
+							t);
+
+					st.index += 1;
+					if (st.index >= den) {
+						st.index = 0;
+					}
 				}
-				st.t += ratio;
 
 				// dst[i][ch] = st.hold;
 			}
