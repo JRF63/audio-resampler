@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import sys
-import glob
 
 env = SConscript("godot-cpp/SConstruct")
 
@@ -30,10 +29,9 @@ if not boost_path:
         boost_path = os.path.join(boost_root, 'include')
     else:
         if env["platform"] == "windows":
-            boost_include = "C:\\ProgramData\\chocolatey\\lib\\boost\\include"
-            boost_dirs = glob.glob(os.path.join(boost_include, "boost-*"))
-            if boost_dirs:
-                boost_path = boost_dirs[0]
+            vcpkg_root = os.environ.get('VCPKG_INSTALLATION_ROOT')
+            triplet = "x64-windows"
+            boost_path = os.path.join(vcpkg_root, 'installed', triplet, 'include')
         elif env["platform"] == "macos":
             try:
                 with os.popen('brew --prefix') as f:
