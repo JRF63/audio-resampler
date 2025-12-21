@@ -58,9 +58,9 @@ sources = Glob("src/*.cpp")
 sources += [
     "soxr/src/cr.c",
     "soxr/src/cr32.c",
-    "soxr/src/cr32s.c",
+    # "soxr/src/cr32s.c",
     "soxr/src/cr64.c",
-    "soxr/src/cr64s.c",
+    # "soxr/src/cr64s.c",
     "soxr/src/data-io.c",
     "soxr/src/dbesi0.c",
     "soxr/src/fft4g32.c",
