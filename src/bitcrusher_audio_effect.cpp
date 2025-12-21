@@ -177,7 +177,7 @@ void BitcrusherAudioEffect::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_filter_q", "filter_q"), &BitcrusherAudioEffect::set_filter_q);
 	ClassDB::bind_method(D_METHOD("get_filter_q"), &BitcrusherAudioEffect::get_filter_q);
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "filter_q", PROPERTY_HINT_RANGE, "0,2,0.01"), "set_filter_q", "get_filter_q");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "filter_q", PROPERTY_HINT_RANGE, "0,2"), "set_filter_q", "get_filter_q");
 }
 
 void BitcrusherAudioEffect::create_resamplers() {
