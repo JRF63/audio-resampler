@@ -8,8 +8,6 @@
 
 #include "bitcrusher_audio_effect.hpp"
 #include "bitcrusher_audio_effect_instance.hpp"
-#include "custom_audio_effect.hpp"
-#include "custom_audio_effect_instance.hpp"
 
 using namespace godot;
 
@@ -20,8 +18,6 @@ void initialize_module(ModuleInitializationLevel p_level) {
 
 	ClassDB::register_class<BitcrusherAudioEffect>();
 	ClassDB::register_class<BitcrusherAudioEffectInstance>();
-	ClassDB::register_class<CustomAudioEffect>();
-	ClassDB::register_class<CustomAudioEffectInstance>();
 }
 
 void uninitialize_module(ModuleInitializationLevel p_level) {

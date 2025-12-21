@@ -5,6 +5,25 @@
 
 using namespace godot;
 
+inline float quantize(float x, float dither, float scale) {
+	return floorf((x + dither) / scale) * scale;
+}
+
+inline float gen_dither(float dither_mult, Rng &rng, float scale) {
+	if (dither_mult > 0.0f) {
+		float u1 = rng.generate();
+		float u2 = rng.generate();
+
+		// float in [-1, +1)
+		float diff = u1 - u2;
+
+		// float in [-1 LSB, +1 LSB)
+		return diff * scale * dither_mult;
+	} else {
+		return 0.0f;
+	}
+}
+
 void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFrame *p_dst_buffer, int32_t p_frame_count) {
 	if (base.is_null()) {
 		ERR_FAIL_EDMSG("Invalid AudioEffect reference");
@@ -21,9 +40,12 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 		std::fill(output, output + 2 * p_frame_count, 0);
 	};
 
+	auto desired_samples = base->num_samples_before_starting;
+	ring_buffer.set_capacity(desired_samples + p_frame_count);
+
 	auto ratio = base->godot_sample_rate / base->target_sample_rate;
-	intermediate_buffer.resize(p_frame_count);
-	intermediate_buffer2.resize(ceil(ratio * p_frame_count));
+	downsampler_output.resize(p_frame_count);
+	upsampler_output.resize(ceil(ratio * p_frame_count));
 
 	size_t idone;
 	size_t odone;
@@ -34,42 +56,70 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 			p_src_buffer,
 			p_frame_count,
 			&idone,
-			reinterpret_cast<void *>(intermediate_buffer.data()),
-			intermediate_buffer.size(),
+			reinterpret_cast<void *>(downsampler_output.data()),
+			downsampler_output.size(),
 			&odone);
 	if (error) {
 		String msg = "Error during downsampling: ";
 		msg += soxr_strerror(error);
 		ERR_FAIL_EDMSG(msg);
 	}
-	// stat1.push(idone, odone);
 
+	// Process downsampled data
+	if (odone > 0) {
+		constexpr int NUM_CHANNELS = 2;
+		const float scale = base->bit_depth_step;
+		float (*dst)[NUM_CHANNELS] = reinterpret_cast<float (*)[NUM_CHANNELS]>(downsampler_output.data());
+
+		for (int i = 0; i < odone; i++) {
+			for (int ch = 0; ch < NUM_CHANNELS; ch++) {
+				ChannelFilter &st = base->channel_filters[ch];
+
+				float x = dst[i][ch];
+
+				// Triangle PDF dithering
+				float dither = gen_dither(base->dither_scale, base->channel_rngs[ch], scale);
+
+				// Noise shaping
+				float shaped = base->channel_filters[ch].process(base->noise_shaping_filter);
+				x -= shaped;
+
+				// Bit depth reduction
+				auto quantized = quantize(x, dither, scale);
+
+				if (base->noise_shaping_filter != NoiseShapingFilter::NO_FILTER) {
+					auto error = quantized - x;
+					base->channel_filters[ch].save_quant_error(error);
+				}
+
+				dst[i][ch] = quantized;
+			}
+		}
+	}
+
+	// Upsample back for playback in Godot
 	size_t written = odone;
 	error = soxr_process(
 			base->soxr2.get(),
-			reinterpret_cast<void *>(intermediate_buffer.data()),
+			reinterpret_cast<void *>(downsampler_output.data()),
 			written,
 			&idone,
-			reinterpret_cast<void *>(intermediate_buffer2.data()),
-			intermediate_buffer2.size(),
+			reinterpret_cast<void *>(upsampler_output.data()),
+			upsampler_output.size(),
 			&odone);
 	if (error) {
 		String msg = "Error during upsampling: ";
 		msg += soxr_strerror(error);
 		ERR_FAIL_EDMSG(msg);
 	}
-	// stat2.push(idone, odone);
 
 	if (odone > 0) {
-		samples_in_buffer += odone;
-		output_deque.push_back(intermediate_buffer2);
-
-		auto &back = output_deque.back();
-		back.resize(odone);
+		ring_buffer.insert(ring_buffer.end(), upsampler_output.begin(), upsampler_output.begin() + odone);
 	}
 
+	// Don't start until enough samples have been generated
 	if (!started) {
-		if (samples_in_buffer < Statistics::WINDOW * p_frame_count) {
+		if (ring_buffer.size() < desired_samples) {
 			mute_before_return();
 			return;
 		} else {
@@ -77,20 +127,10 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 		}
 	}
 
-	size_t index = 0;
-	int32_t remaining = p_frame_count;
-	while (!output_deque.empty() && remaining > 0) {
-		auto &front = output_deque.front();
-		if (front.size() > remaining) {
-			std::copy(front.begin(), front.begin() + remaining, p_dst_buffer + index);
-			front.erase(front.begin(), front.begin() + remaining);
-			index += remaining;
-			remaining = 0;
-		} else {
-			std::copy(front.begin(), front.end(), p_dst_buffer + index);
-			index += front.size();
-			remaining -= front.size();
-			output_deque.pop_front();
-		}
+	if (ring_buffer.size() >= p_frame_count) {
+		std::copy(ring_buffer.begin(), ring_buffer.begin() + p_frame_count, p_dst_buffer);
+		ring_buffer.erase_begin(p_frame_count);
+	} else {
+		mute_before_return();
 	}
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import glob
 
 env = SConscript("godot-cpp/SConstruct")
 
@@ -18,6 +19,34 @@ if env["platform"] == "windows":
         suffix = "Release"
 else:
     suffix = ""
+
+# Boost C++ headers
+boost_path = env.get('boost_inc')
+
+if not boost_path:
+    boost_root = os.environ.get('BOOST_ROOT')
+    
+    if boost_root:
+        boost_path = os.path.join(boost_root, 'include')
+    else:
+        if env["platform"] == "windows":
+            boost_include = "C:\\ProgramData\\chocolatey\\lib\\boost\\include"
+            boost_dirs = glob.glob(os.path.join(boost_include, "boost-*"))
+            if boost_dirs:
+                boost_path = boost_dirs[0]
+        elif env["platform"] == "macos":
+            try:
+                with os.popen('brew --prefix') as f:
+                    boost_path = os.path.join(f.read().strip(), 'include')
+            except:
+                pass
+        else:
+            # linux
+            boost_path = "/usr/include"
+
+# Add the Boost headers if they exist
+if boost_path and os.path.exists(boost_path):
+    env.Append(CPPPATH=[boost_path])
 
 if env["target"] == "template_release":
     if env["platform"] == "windows":
