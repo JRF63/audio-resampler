@@ -1,6 +1,5 @@
 #pragma once
 
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 struct Biquad {
@@ -22,7 +21,8 @@ struct Biquad {
 	}
 
 	void init_shaper(float fs, float fc, float Q) {
-		float w0 = 2.0f * M_PI * fc / fs;
+		constexpr float PI = 3.14159265358979323846264338327950288;
+		float w0 = 2.0f * PI * fc / fs;
 		float cosw0 = cosf(w0);
 		float sinw0 = sinf(w0);
 		float alpha = sinw0 / (2.0f * Q);
