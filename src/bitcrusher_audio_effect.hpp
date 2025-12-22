@@ -111,8 +111,8 @@ public:
 	void set_upsampler_steep_filter(bool enable);
 	bool get_upsampler_steep_filter() const { return upsampler_steep_filter; }
 
-	void set_bit_depth(float bits);
-	float get_bit_depth() const { return bit_depth; }
+	void set_bit_depth(double bits);
+	double get_bit_depth() const { return bit_depth; }
 
 	void set_dither_scale(float scale);
 	float get_dither_scale() const { return dither_scale; }
@@ -154,9 +154,10 @@ private:
 	std::array<ChannelFilter, 2> channel_filters{};
 	std::array<Rng, 2> channel_rngs;
 
-	float bit_depth = 32.0f;
+	double bit_depth = 32.0f;
 	float dither_scale = 0.0f;
-	float bit_depth_step = 0x1p-32; // Exactly equal to ldexpf(1.0f, -32.0f);
+	double bit_depth_step = 0x1p-32; // Exactly equal to ldexp(1.0, -32.0)
+	double bit_depth_step_inv = 0x1p+32; // 1.0 / ldexp(1.0, -32.0)
 	size_t num_samples_before_starting = 10 * 512;
 
 	NoiseShapingFilter noise_shaping_filter = NoiseShapingFilter::NO_FILTER;

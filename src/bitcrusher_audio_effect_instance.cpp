@@ -5,8 +5,9 @@
 
 using namespace godot;
 
-inline float quantize(float x, float dither, float scale) {
-	return floorf((x + dither) / scale) * scale;
+inline float quantize(float x, float dither, double scale, double scale_inv) {
+	double y = static_cast<double>(x) + dither;
+	return floor(y * scale_inv) * scale;
 }
 
 inline float gen_dither(float dither_mult, Rng &rng, float scale) {
@@ -76,7 +77,8 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 	// Process downsampled data
 	if (odone > 0) {
 		constexpr int NUM_CHANNELS = 2;
-		const float scale = base->bit_depth_step;
+		const auto scale = base->bit_depth_step;
+		const auto scale_inv = base->bit_depth_step_inv;
 		float (*dst)[NUM_CHANNELS] = reinterpret_cast<float (*)[NUM_CHANNELS]>(downsampler_output.data());
 
 		for (int i = 0; i < odone; i++) {
@@ -93,7 +95,7 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 				x -= shaped;
 
 				// Bit depth reduction
-				auto quantized = quantize(x, dither, scale);
+				float quantized = quantize(x, dither, scale, scale_inv);
 
 				if (base->noise_shaping_filter != NoiseShapingFilter::NO_FILTER) {
 					auto error = quantized - x;

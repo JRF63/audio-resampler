@@ -2,6 +2,9 @@
 
 [sub_resource type="BitcrusherAudioEffect" id="BitcrusherAudioEffect_j3pel"]
 sample_rate = 8000.0
+downsampler_quality = 6
+upsampler_quality = 6
+bit_depth = 8.0
 resource_name = "Bitcrusher"
 
 [resource]

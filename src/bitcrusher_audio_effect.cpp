@@ -73,12 +73,13 @@ void BitcrusherAudioEffect::set_upsampler_steep_filter(bool enable) {
 
 // end resampler methods
 
-void BitcrusherAudioEffect::set_bit_depth(float bits) {
+void BitcrusherAudioEffect::set_bit_depth(double bits) {
 	if (1 <= bits && bits <= 32) {
 		bit_depth = bits;
 
 		// bit_depth_step = powf(0.5f, bits);
-		bit_depth_step = ldexpf(1.0f, -bits);
+		bit_depth_step = ldexp(1.0, -bits);
+		bit_depth_step_inv = 1.0 / bit_depth_step;
 	} else {
 		ERR_FAIL_EDMSG("Invalid output bit depth");
 	}
