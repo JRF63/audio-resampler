@@ -9,15 +9,11 @@ opts = Variables([], ARGUMENTS)
 opts.Add("target_name", "Name of the library to be built by SCons", "libresampler")
 opts.Update(env)
 
+build_dir = "build/"
+env.VariantDir(os.path.join(build_dir, "soxr"), "soxr/src", duplicate=0)
+
 env.Append(CPPPATH=["src/", "soxr/src/"])
 env.Append(CPPDEFINES = "SOXR_LIB")
-
-if env["platform"] == "windows":
-    suffix = "Debug"
-    if env["target"] == "template_release":
-        suffix = "Release"
-else:
-    suffix = ""
 
 # Boost C++ headers
 boost_path = env.get('boost_inc')
@@ -46,33 +42,26 @@ if not boost_path:
 if boost_path and os.path.exists(boost_path):
     env.Append(CPPPATH=[boost_path])
 
-if env["target"] == "template_release":
-    if env["platform"] == "windows":
-        env.Append(CCFLAGS=["/GL"])
-        env.Append(LINKFLAGS=["/LTCG"])
-    else:
-        env.Append(CCFLAGS=["-flto"])
-        env.Append(LINKFLAGS=["-flto"])
-
-sources = Glob("src/*.cpp")
-sources += [
-    "soxr/src/cr.c",
-    "soxr/src/cr32.c",
-    # "soxr/src/cr32s.c",
-    "soxr/src/cr64.c",
-    # "soxr/src/cr64s.c",
-    "soxr/src/data-io.c",
-    "soxr/src/dbesi0.c",
-    "soxr/src/fft4g32.c",
-    "soxr/src/fft4g64.c",
-    "soxr/src/filter.c",
-    # "soxr/src/pffft32s.c",
-    # "soxr/src/pffft64s.c",
-    # "soxr/src/util32s.c",
-    # "soxr/src/util64s.c",
-    "soxr/src/soxr.c",
-    "soxr/src/vr32.c",
+sources = Glob("src/*cpp")
+soxr_src_files = [
+    "cr.c",
+    "cr32.c",
+    # "cr32s.c",
+    "cr64.c",
+    # "cr64s.c",
+    "data-io.c",
+    "dbesi0.c",
+    "fft4g32.c",
+    "fft4g64.c",
+    "filter.c",
+    # "pffft32s.c",
+    # "pffft64s.c",
+    # "util32s.c",
+    # "util64s.c",
+    "soxr.c",
+    "vr32.c",
 ]
+sources += [os.path.join(build_dir, "soxr", s) for s in soxr_src_files]
 
 if env["platform"] == "windows":
     library = env.SharedLibrary(
@@ -87,10 +76,8 @@ elif env["platform"] == "macos":
             env["SHLIBSUFFIX"],
         )
 
-    env.Append(CCFLAGS=["-mmacosx-version-min=11.0"])
-    env.Append(CXXFLAGS=["-mmacosx-version-min=11.0"])
+    env["macos_deployment_target"] = "11.0"
     env.Append(LINKFLAGS=["-dynamiclib", "-install_name", "@rpath/{}".format(libname)])
-    env.Append(LINKFLAGS=["-mmacosx-version-min=11.0"])
 
     library = env.SharedLibrary(
         "project/bin/{}".format(libname),
