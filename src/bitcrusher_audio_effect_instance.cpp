@@ -44,9 +44,15 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 
 	{
 		auto ratio = base->godot_sample_rate / base->target_sample_rate;
+
+		// Could be `p_frame_count / ratio` but we just make it larger
 		downsampler_output.resize(p_frame_count);
-		upsampler_output.resize(ceil(ratio * p_frame_count + p_frame_count));
-		ring_buffer.set_capacity(desired_samples + upsampler_output.size());
+
+		// Should be more than `ratio * downsampler_output.size()` to avoid bottlenecking upsampler
+		upsampler_output.resize(ceil(ratio * downsampler_output.size()) + p_frame_count);
+
+		// Avoid overflow when inserting `upsampler_output`
+		ring_buffer.set_capacity(desired_samples + 2 * upsampler_output.size());
 	}
 
 	size_t idone;
@@ -116,6 +122,9 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 	}
 
 	if (odone > 0) {
+		if (ring_buffer.reserve() < odone) {
+			ERR_FAIL_EDMSG("Ring buffer capacity too small");
+		}
 		ring_buffer.insert(ring_buffer.end(), upsampler_output.begin(), upsampler_output.begin() + odone);
 	}
 
@@ -134,5 +143,6 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 		ring_buffer.erase_begin(p_frame_count);
 	} else {
 		mute_before_return();
+		WARN_PRINT_ED("Output buffer too small - skipping samples");
 	}
 }
