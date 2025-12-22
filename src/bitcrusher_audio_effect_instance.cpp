@@ -52,8 +52,10 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 		// Should be more than `ratio * downsampler_output.size()` to avoid bottlenecking upsampler
 		upsampler_output.resize(ceil(ratio * downsampler_output.size()) + p_frame_count);
 
-		// Avoid overflow when inserting `upsampler_output`
-		ring_buffer.set_capacity(desired_samples + 2 * upsampler_output.size());
+		auto max_ring_buffer_capacity = desired_samples + 3 * upsampler_output.size();
+		if (ring_buffer.capacity() < max_ring_buffer_capacity) {
+			ring_buffer.set_capacity(max_ring_buffer_capacity);
+		}
 	}
 
 	size_t idone;
@@ -125,7 +127,8 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 
 	if (odone > 0) {
 		if (ring_buffer.reserve() < odone) {
-			ERR_FAIL_EDMSG("Ring buffer capacity too small");
+			auto needed = ring_buffer.size() + odone;
+			ring_buffer.set_capacity(std::max(needed, ring_buffer.capacity() * 2));
 		}
 		ring_buffer.insert(ring_buffer.end(), upsampler_output.begin(), upsampler_output.begin() + odone);
 	}
