@@ -24,11 +24,34 @@ Ref<AudioEffectInstance> BitcrusherAudioEffect::_instantiate() {
 
 void BitcrusherAudioEffect::set_sample_rate(double sample_rate) {
 	if (sample_rate >= 0) {
+		godot_sample_rate = AudioServer::get_singleton()->get_mix_rate();
+
+		// Clamp to Godot's sample rate
+		if (sample_rate > godot_sample_rate) {
+			WARN_PRINT_ED("Cannot set target sample rate higher than Godot's sample rate");
+			sample_rate = godot_sample_rate;
+		}
+
 		target_sample_rate = sample_rate;
-		create_resamplers();
+
+		if (variable_rate) {
+			if (soxr1 != nullptr) {
+				soxr_set_io_ratio(soxr1.get(), godot_sample_rate / target_sample_rate, 0);
+			}
+			if (soxr2 != nullptr) {
+				soxr_set_io_ratio(soxr2.get(), target_sample_rate / godot_sample_rate, 0);
+			}
+		} else {
+			create_resamplers();
+		}
 	} else {
 		ERR_FAIL_EDMSG("Invalid sample rate");
 	}
+}
+
+void BitcrusherAudioEffect::set_variable_rate_resampling(bool enable) {
+	variable_rate = enable;
+	create_resamplers();
 }
 
 void BitcrusherAudioEffect::set_downsampler_quality(SamplerQuality quality) {
@@ -95,6 +118,7 @@ void BitcrusherAudioEffect::set_dither_scale(float scale) {
 
 void BitcrusherAudioEffect::set_noise_shaping_filter(NoiseShapingFilter order) {
 	noise_shaping_filter = order;
+	notify_property_list_changed();
 }
 
 void BitcrusherAudioEffect::set_filter_cutoff_frequency(float freq) {
@@ -128,7 +152,11 @@ void BitcrusherAudioEffect::set_output_buffer(int64_t samples) {
 void BitcrusherAudioEffect::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_sample_rate", "sample_rate"), &BitcrusherAudioEffect::set_sample_rate);
 	ClassDB::bind_method(D_METHOD("get_sample_rate"), &BitcrusherAudioEffect::get_sample_rate);
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "sample_rate", PROPERTY_HINT_RANGE, "0,48000,0.1"), "set_sample_rate", "get_sample_rate");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "sample_rate"), "set_sample_rate", "get_sample_rate");
+
+	ClassDB::bind_method(D_METHOD("set_variable_rate_resampling", "enable"), &BitcrusherAudioEffect::set_variable_rate_resampling);
+	ClassDB::bind_method(D_METHOD("get_variable_rate_resampling"), &BitcrusherAudioEffect::get_variable_rate_resampling);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "variable_rate_resampling"), "set_variable_rate_resampling", "get_variable_rate_resampling");
 
 	ClassDB::bind_method(D_METHOD("set_downsampler_quality", "quality"), &BitcrusherAudioEffect::set_downsampler_quality);
 	ClassDB::bind_method(D_METHOD("get_downsampler_quality"), &BitcrusherAudioEffect::get_downsampler_quality);
@@ -189,7 +217,30 @@ void BitcrusherAudioEffect::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "output_buffer", PROPERTY_HINT_RANGE, "1,51200"), "set_output_buffer", "get_output_buffer");
 }
 
+void BitcrusherAudioEffect::_validate_property(PropertyInfo &p_property) const {
+	if (p_property.name == StringName("sample_rate")) {
+		auto audio_server = AudioServer::get_singleton();
+		if (audio_server == nullptr) {
+			return;
+		}
+		float max_rate = audio_server->get_mix_rate();
+		float min_rate = max_rate / 32;
+
+		p_property.hint = PROPERTY_HINT_RANGE;
+		p_property.hint_string = String::num(min_rate) + "," + String::num(max_rate) + ",0.1";
+	}
+
+	// Disable if not using 2nd-order filter
+	if (p_property.name == StringName("filter_cutoff_frequency") || p_property.name == StringName("filter_q")) {
+		if (noise_shaping_filter != 2) {
+			p_property.usage = PROPERTY_USAGE_NONE;
+		}
+	}
+}
+
 void BitcrusherAudioEffect::create_resamplers() {
+	std::lock_guard<std::mutex> lock(resampler_mutex);
+
 	godot_sample_rate = AudioServer::get_singleton()->get_mix_rate();
 	if (target_sample_rate == 0.0) {
 		target_sample_rate = godot_sample_rate;
@@ -213,12 +264,12 @@ void BitcrusherAudioEffect::create_resamplers() {
 		soxr_io_spec_t io_spec_downsampler = soxr_io_spec(input_data_type, intermediate_data_type);
 
 		unsigned long quality_spec_recipe = downsampler_quality | downsampler_phase | (downsampler_steep_filter ? SOXR_STEEP_FILTER : 0);
-		unsigned long quality_spec_flags = downsampler_rolloff;
+		unsigned long quality_spec_flags = downsampler_rolloff | (variable_rate ? SOXR_VR : 0);
 		soxr_quality_spec_t quality_spec = soxr_quality_spec(quality_spec_recipe, quality_spec_flags);
 
 		auto downsampler = soxr_create(
-				godot_sample_rate,
-				target_sample_rate,
+				variable_rate ? 32 : godot_sample_rate,
+				variable_rate ? 1 : target_sample_rate,
 				num_channels,
 				&error,
 				&io_spec_downsampler,
@@ -232,6 +283,10 @@ void BitcrusherAudioEffect::create_resamplers() {
 		} else {
 			soxr1 = SoxrPtr(downsampler);
 		}
+
+		if (variable_rate) {
+			soxr_set_io_ratio(soxr1.get(), godot_sample_rate / target_sample_rate, 0);
+		}
 	}
 
 	// Build upsampler
@@ -239,12 +294,12 @@ void BitcrusherAudioEffect::create_resamplers() {
 		soxr_io_spec_t io_spec_upsampler = soxr_io_spec(intermediate_data_type, output_data_type);
 
 		unsigned long quality_spec_recipe = upsampler_quality | upsampler_phase | (upsampler_steep_filter ? SOXR_STEEP_FILTER : 0);
-		unsigned long quality_spec_flags = upsampler_rolloff;
+		unsigned long quality_spec_flags = upsampler_rolloff | (variable_rate ? SOXR_VR : 0);
 		soxr_quality_spec_t quality_spec = soxr_quality_spec(quality_spec_recipe, quality_spec_flags);
 
 		auto upsampler = soxr_create(
-				target_sample_rate,
-				godot_sample_rate,
+				variable_rate ? 1 : target_sample_rate,
+				variable_rate ? 1 : godot_sample_rate,
 				num_channels,
 				&error,
 				&io_spec_upsampler,
@@ -257,6 +312,10 @@ void BitcrusherAudioEffect::create_resamplers() {
 			ERR_FAIL_EDMSG(msg);
 		} else {
 			soxr2 = SoxrPtr(upsampler);
+		}
+
+		if (variable_rate) {
+			soxr_set_io_ratio(soxr2.get(), target_sample_rate / godot_sample_rate, 0);
 		}
 	}
 }

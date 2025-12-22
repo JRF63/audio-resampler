@@ -31,6 +31,8 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 		return;
 	}
 
+	std::lock_guard<std::mutex> lock(base->resampler_mutex);
+
 	if (base->soxr1 == nullptr || base->soxr2 == nullptr) {
 		ERR_FAIL_EDMSG("Resamplers not initialized");
 		return;
@@ -50,7 +52,10 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 		downsampler_output.resize(p_frame_count);
 
 		// Should be more than `ratio * downsampler_output.size()` to avoid bottlenecking upsampler
-		upsampler_output.resize(ceil(ratio * downsampler_output.size()) + p_frame_count);
+		size_t upsampler_output_size = ceil(ratio * downsampler_output.size()) + p_frame_count;
+		if (upsampler_output.size() < upsampler_output_size) {
+			upsampler_output.resize(upsampler_output_size);
+		}
 
 		auto max_ring_buffer_capacity = desired_samples + 3 * upsampler_output.size();
 		if (ring_buffer.capacity() < max_ring_buffer_capacity) {
@@ -129,6 +134,7 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 		if (ring_buffer.reserve() < odone) {
 			auto needed = ring_buffer.size() + odone;
 			ring_buffer.set_capacity(std::max(needed, ring_buffer.capacity() * 2));
+			WARN_PRINT_ED("Resizing ring buffer");
 		}
 		ring_buffer.insert(ring_buffer.end(), upsampler_output.begin(), upsampler_output.begin() + odone);
 	}
@@ -149,5 +155,6 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 	} else {
 		mute_before_return();
 		WARN_PRINT_ED("Output buffer too small - skipping samples");
+		started = false;
 	}
 }

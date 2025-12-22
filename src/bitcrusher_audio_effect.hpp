@@ -9,6 +9,7 @@
 
 #include <array>
 #include <memory>
+#include <mutex>
 
 template <typename T, void (*FreeFn)(T *)>
 struct CDeleter {
@@ -87,6 +88,9 @@ public:
 	void set_sample_rate(double sample_rate);
 	double get_sample_rate() const { return target_sample_rate; }
 
+	void set_variable_rate_resampling(bool enable);
+	bool get_variable_rate_resampling() const { return variable_rate; }
+
 	void set_downsampler_quality(SamplerQuality quality);
 	SamplerQuality get_downsampler_quality() const { return downsampler_quality; }
 
@@ -131,10 +135,12 @@ public:
 
 protected:
 	static void _bind_methods();
+	void _validate_property(PropertyInfo &p_property) const;
 
 private:
 	SoxrPtr soxr1;
 	SoxrPtr soxr2;
+	std::mutex resampler_mutex;
 
 	double godot_sample_rate;
 	double target_sample_rate;
@@ -150,6 +156,7 @@ private:
 
 	bool downsampler_steep_filter = false;
 	bool upsampler_steep_filter = false;
+	bool variable_rate = false;
 
 	std::array<ChannelFilter, 2> channel_filters{};
 	std::array<Rng, 2> channel_rngs;
