@@ -28,9 +28,6 @@ private:
 
 	size_t samples_in_buffer;
 	bool started = false;
-
-	// Statistics stat1;
-	// Statistics stat2;
 };
 
 } //namespace godot

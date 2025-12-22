@@ -126,6 +126,9 @@ public:
 	void set_filter_q(float q);
 	float get_filter_q() const { return filter_q; }
 
+	void set_output_buffer(int64_t samples);
+	int64_t get_output_buffer() const { return num_samples_before_starting; }
+
 protected:
 	static void _bind_methods();
 
@@ -154,7 +157,7 @@ private:
 	float bit_depth = 32.0f;
 	float dither_scale = 0.0f;
 	float bit_depth_step = 0x1p-32; // Exactly equal to ldexpf(1.0f, -32.0f);
-	size_t num_samples_before_starting = 3 * 512;
+	size_t num_samples_before_starting = 10 * 512;
 
 	NoiseShapingFilter noise_shaping_filter = NoiseShapingFilter::NO_FILTER;
 	float filter_cutoff_frequency = 3000.0f; // 3 kHz

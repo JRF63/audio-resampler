@@ -41,11 +41,13 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 	};
 
 	auto desired_samples = base->num_samples_before_starting;
-	ring_buffer.set_capacity(desired_samples + p_frame_count);
 
-	auto ratio = base->godot_sample_rate / base->target_sample_rate;
-	downsampler_output.resize(p_frame_count);
-	upsampler_output.resize(ceil(ratio * p_frame_count));
+	{
+		auto ratio = base->godot_sample_rate / base->target_sample_rate;
+		downsampler_output.resize(p_frame_count);
+		upsampler_output.resize(ceil(ratio * p_frame_count + p_frame_count));
+		ring_buffer.set_capacity(desired_samples + upsampler_output.size());
+	}
 
 	size_t idone;
 	size_t odone;

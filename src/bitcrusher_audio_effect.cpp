@@ -120,6 +120,10 @@ void BitcrusherAudioEffect::set_filter_q(float q) {
 	}
 }
 
+void BitcrusherAudioEffect::set_output_buffer(int64_t samples) {
+	num_samples_before_starting = samples;
+}
+
 void BitcrusherAudioEffect::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_sample_rate", "sample_rate"), &BitcrusherAudioEffect::set_sample_rate);
 	ClassDB::bind_method(D_METHOD("get_sample_rate"), &BitcrusherAudioEffect::get_sample_rate);
@@ -178,6 +182,10 @@ void BitcrusherAudioEffect::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_filter_q", "filter_q"), &BitcrusherAudioEffect::set_filter_q);
 	ClassDB::bind_method(D_METHOD("get_filter_q"), &BitcrusherAudioEffect::get_filter_q);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "filter_q", PROPERTY_HINT_RANGE, "0,2"), "set_filter_q", "get_filter_q");
+
+	ClassDB::bind_method(D_METHOD("set_output_buffer", "samples"), &BitcrusherAudioEffect::set_output_buffer);
+	ClassDB::bind_method(D_METHOD("get_output_buffer"), &BitcrusherAudioEffect::get_output_buffer);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "output_buffer", PROPERTY_HINT_RANGE, "1,51200"), "set_output_buffer", "get_output_buffer");
 }
 
 void BitcrusherAudioEffect::create_resamplers() {
