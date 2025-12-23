@@ -128,6 +128,28 @@ void BitcrusherAudioEffect::set_dither_scale(float scale) {
 	}
 }
 
+void BitcrusherAudioEffect::set_dither_threshold(float threshold) {
+	if (0 <= threshold) {
+		std::lock_guard<std::mutex> lock(resampler_mutex);
+		dither_threshold = threshold;
+	} else {
+		ERR_FAIL_EDMSG("Invalid dither window size");
+	}
+}
+
+void BitcrusherAudioEffect::set_dither_window(int64_t size) {
+	if (1 <= size) {
+		std::lock_guard<std::mutex> lock(resampler_mutex);
+		dither_window = size;
+
+		for (int i = 0; i < 2; i++) {
+			channel_filters[i].set_volume_average_window(size);
+		}
+	} else {
+		ERR_FAIL_EDMSG("Invalid dither window size");
+	}
+}
+
 void BitcrusherAudioEffect::set_noise_shaping_filter(NoiseShapingFilter order) {
 	std::lock_guard<std::mutex> lock(resampler_mutex);
 	noise_shaping_filter = order;
@@ -174,10 +196,6 @@ void BitcrusherAudioEffect::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_bit_depth"), &BitcrusherAudioEffect::get_bit_depth);
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "bit_depth", PROPERTY_HINT_RANGE, "1,32,0.01"), "set_bit_depth", "get_bit_depth");
 
-	ClassDB::bind_method(D_METHOD("set_dither_scale", "dither_scale"), &BitcrusherAudioEffect::set_dither_scale);
-	ClassDB::bind_method(D_METHOD("get_dither_scale"), &BitcrusherAudioEffect::get_dither_scale);
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "dither_scale", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_dither_scale", "get_dither_scale");
-
 	ClassDB::bind_method(D_METHOD("set_output_buffer", "samples"), &BitcrusherAudioEffect::set_output_buffer);
 	ClassDB::bind_method(D_METHOD("get_output_buffer"), &BitcrusherAudioEffect::get_output_buffer);
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "output_buffer", PROPERTY_HINT_RANGE, "1,51200"), "set_output_buffer", "get_output_buffer");
@@ -185,6 +203,20 @@ void BitcrusherAudioEffect::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_variable_rate_resampling", "enable"), &BitcrusherAudioEffect::set_variable_rate_resampling);
 	ClassDB::bind_method(D_METHOD("get_variable_rate_resampling"), &BitcrusherAudioEffect::get_variable_rate_resampling);
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "variable_rate_resampling"), "set_variable_rate_resampling", "get_variable_rate_resampling");
+
+	ADD_GROUP("Dithering", "dither_");
+
+	ClassDB::bind_method(D_METHOD("set_dither_scale", "dither_scale"), &BitcrusherAudioEffect::set_dither_scale);
+	ClassDB::bind_method(D_METHOD("get_dither_scale"), &BitcrusherAudioEffect::get_dither_scale);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "dither_scale", PROPERTY_HINT_RANGE, "0,1,0.01"), "set_dither_scale", "get_dither_scale");
+
+	ClassDB::bind_method(D_METHOD("set_dither_threshold", "dither_threshold"), &BitcrusherAudioEffect::set_dither_threshold);
+	ClassDB::bind_method(D_METHOD("get_dither_threshold"), &BitcrusherAudioEffect::get_dither_threshold);
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "dither_threshold", PROPERTY_HINT_RANGE, "0,0.5,0.0001"), "set_dither_threshold", "get_dither_threshold");
+
+	ClassDB::bind_method(D_METHOD("set_dither_window", "dither_window"), &BitcrusherAudioEffect::set_dither_window);
+	ClassDB::bind_method(D_METHOD("get_dither_window"), &BitcrusherAudioEffect::get_dither_window);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "dither_window", PROPERTY_HINT_RANGE, "1,1024"), "set_dither_window", "get_dither_window");
 
 	ADD_GROUP("Downsampler", "downsampler_");
 

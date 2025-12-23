@@ -1,6 +1,6 @@
 #pragma once
 
-#include "biquad.hpp"
+#include "channel_filter.hpp"
 #include "rng.hpp"
 
 #include <godot_cpp/classes/audio_effect.hpp>
@@ -42,38 +42,10 @@ enum SamplerRolloff {
 	NO_ROLLOFF = SOXR_ROLLOFF_NONE,
 };
 
-enum NoiseShapingFilter {
-	NO_FILTER = 0,
-	FIRST_ORDER = 1,
-	SECOND_ORDER = 2,
-};
-
 VARIANT_ENUM_CAST(SamplerQuality);
 VARIANT_ENUM_CAST(SamplerPhase);
 VARIANT_ENUM_CAST(SamplerRolloff);
 VARIANT_ENUM_CAST(NoiseShapingFilter);
-
-struct ChannelFilter {
-	float quant_error = 0.0f;
-	Biquad biquad;
-
-	inline void save_quant_error(float error) {
-		quant_error = error;
-	}
-
-	inline float process(NoiseShapingFilter order) {
-		float shaping;
-		switch (order) {
-			case NoiseShapingFilter::FIRST_ORDER:
-				shaping = quant_error;
-			case NoiseShapingFilter::SECOND_ORDER:
-				shaping = biquad.process(quant_error);
-			default:
-				shaping = 0.0;
-		}
-		return shaping;
-	}
-};
 
 namespace godot {
 class BitcrusherAudioEffect : public AudioEffect {
@@ -121,6 +93,12 @@ public:
 	void set_dither_scale(float scale);
 	float get_dither_scale() const { return dither_scale; }
 
+	void set_dither_threshold(float threshold);
+	float get_dither_threshold() const { return dither_threshold; }
+
+	void set_dither_window(int64_t size);
+	int64_t get_dither_window() const { return dither_window; }
+
 	void set_noise_shaping_filter(NoiseShapingFilter order);
 	NoiseShapingFilter get_noise_shaping_filter() const { return noise_shaping_filter; }
 
@@ -158,11 +136,13 @@ private:
 	bool upsampler_steep_filter = false;
 	bool variable_rate = false;
 
-	std::array<ChannelFilter, 2> channel_filters{};
+	std::array<ChannelFilter, 2> channel_filters;
 	std::array<Rng, 2> channel_rngs;
 
 	double bit_depth = 32.0f;
 	float dither_scale = 0.0f;
+	float dither_threshold = 1e-3f;
+	int64_t dither_window = 32;
 	double bit_depth_step = 0x1p-32; // Exactly equal to ldexp(1.0, -32.0)
 	double bit_depth_step_inv = 0x1p+32; // 1.0 / ldexp(1.0, -32.0)
 	size_t num_samples_before_starting = 10 * 512;

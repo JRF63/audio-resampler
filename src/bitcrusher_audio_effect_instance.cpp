@@ -2,12 +2,13 @@
 #include "bitcrusher_audio_effect.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace godot;
 
 inline float quantize(float x, float dither, double scale, double scale_inv) {
 	double y = static_cast<double>(x) + dither;
-	return floor(y * scale_inv) * scale;
+	return round(y * scale_inv) * scale;
 }
 
 inline float gen_dither(float dither_mult, Rng &rng, float scale) {
@@ -94,8 +95,14 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 
 				float x = dst[i][ch];
 
+				st.push_back_sample(x);
+
 				// Triangle PDF dithering
 				float dither = gen_dither(base->dither_scale, base->channel_rngs[ch], scale);
+				if (st.volume_average() < base->dither_threshold) {
+					// Don't add dithering on silence
+					dither = 0.0f;
+				}
 
 				// Noise shaping
 				float shaped = base->channel_filters[ch].process(base->noise_shaping_filter);
@@ -106,6 +113,9 @@ void BitcrusherAudioEffectInstance::_process(const void *p_src_buffer, AudioFram
 
 				if (base->noise_shaping_filter != NoiseShapingFilter::NO_FILTER) {
 					auto error = quantized - x;
+					if (fabsf(error) < 1e-9f) {
+						error = 0.0f;
+					}
 					base->channel_filters[ch].save_quant_error(error);
 				}
 
